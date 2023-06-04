@@ -1,6 +1,8 @@
 // App.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 
+import useAsync from 'hooks/useAsync';
+
 import fetchImagesAPI from 'utils/api';
 import showMessage from 'utils/swalConfig';
 
@@ -15,8 +17,6 @@ import { SpinnerWrapper } from './App.styled';
 const App = () => {
   const [state, setState] = useState({
     images: [],
-    loading: false,
-    error: null,
     searchQuery: '',
     currentPage: 1,
     largeImage: null,
@@ -28,8 +28,6 @@ const App = () => {
 
   const {
     images,
-    loading,
-    error,
     searchQuery,
     currentPage,
     largeImage,
@@ -39,8 +37,8 @@ const App = () => {
     total,
   } = state;
 
-  const fetchImages = useCallback(async () => {
-    setState(prevState => ({ ...prevState, loading: true }));
+  const asyncFetchImages = useCallback(async () => {
+    if (!searchQuery) return;
 
     try {
       const { hits, totalHits } = await fetchImagesAPI(
@@ -60,17 +58,15 @@ const App = () => {
         total: totalHits,
       }));
     } catch (error) {
-      setState(prevState => ({ ...prevState, error: error.message }));
-    } finally {
-      setState(prevState => ({ ...prevState, loading: false }));
+      throw error;
     }
   }, [searchQuery, currentPage]);
 
+  const { execute, status, error } = useAsync(asyncFetchImages, false);
+
   useEffect(() => {
-    if (searchQuery) {
-      fetchImages();
-    }
-  }, [searchQuery, currentPage, fetchImages]);
+    execute();
+  }, [execute]);
 
   const handleSearchSubmit = newQuery => {
     if (newQuery === searchQuery) {
@@ -80,10 +76,14 @@ const App = () => {
     }
 
     setState({
-      ...state,
+      images: [],
       searchQuery: newQuery,
       currentPage: 1,
-      images: [],
+      largeImage: null,
+      showModal: false,
+      isLargeImageLoaded: false,
+      hasMoreImages: true,
+      total: 0,
     });
   };
 
@@ -111,23 +111,27 @@ const App = () => {
     setState({ ...state, isLargeImageLoaded: true });
   };
 
-  const totalPage = total / images.length;
-
   return (
     <Layout className="App">
-      <Searchbar onSubmit={handleSearchSubmit} isSubmitting={loading} />
+      <Searchbar
+        onSubmit={handleSearchSubmit}
+        isSubmitting={status === 'pending'}
+      />
+
       {error && showMessage('Something went wrong...')}
 
       <ImageGallery images={images} onImageClick={openModal} />
 
-      {loading && (
+      {status === 'pending' && (
         <SpinnerWrapper>
           <Spinner />
         </SpinnerWrapper>
       )}
-      {totalPage > 1 && !loading && images.length > 0 && hasMoreImages && (
-        <Button onClick={loadMoreImages} />
-      )}
+
+      {total > images.length &&
+        status !== 'pending' &&
+        images.length > 0 &&
+        hasMoreImages && <Button onClick={loadMoreImages} />}
 
       {showModal && (
         <Modal

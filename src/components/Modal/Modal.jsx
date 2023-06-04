@@ -3,25 +3,21 @@ import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 
+import useKeyPress from 'hooks/useKeyPress';
+
 import Spinner from 'components/Spinner';
 import { Overlay, ModalEl, LargeImageStyled } from './Modal.styled';
 
 const modalRoot = document.querySelector('#modal-root');
 
 const Modal = ({ onClose, largeImage, isLargeImageLoaded, onImageLoad }) => {
+  const escapePressed = useKeyPress('Escape');
+
   useEffect(() => {
-    const handleKeyDown = event => {
-      if (event.code === 'Escape') {
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onClose]);
+    if (escapePressed) {
+      onClose();
+    }
+  }, [escapePressed, onClose]);
 
   const handleBackdropClick = event => {
     if (event.currentTarget === event.target) {
