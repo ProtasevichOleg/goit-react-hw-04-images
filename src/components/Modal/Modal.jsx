@@ -1,12 +1,12 @@
 // Modal.jsx
 import React, { useEffect } from 'react';
-// import { createPortal } from 'react-dom';
+import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 
 import Spinner from 'components/Spinner';
 import { Overlay, ModalEl, LargeImageStyled } from './Modal.styled';
 
-// const modalRoot = document.querySelector('#modal-root');
+const modalRoot = document.querySelector('#modal-root');
 
 const Modal = ({ onClose, largeImage, isLargeImageLoaded, onImageLoad }) => {
   useEffect(() => {
@@ -31,7 +31,7 @@ const Modal = ({ onClose, largeImage, isLargeImageLoaded, onImageLoad }) => {
 
   const { largeImageURL, tags } = largeImage;
 
-  return (
+  const modalContent = (
     <Overlay onClick={handleBackdropClick}>
       <ModalEl>
         {!isLargeImageLoaded && <Spinner />}
@@ -44,6 +44,8 @@ const Modal = ({ onClose, largeImage, isLargeImageLoaded, onImageLoad }) => {
       </ModalEl>
     </Overlay>
   );
+
+  return ReactDOM.createPortal(modalContent, modalRoot);
 };
 
 Modal.propTypes = {
