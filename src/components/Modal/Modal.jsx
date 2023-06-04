@@ -1,59 +1,50 @@
 // Modal.jsx
-import React, { Component } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useEffect } from 'react';
+// import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 
 import Spinner from 'components/Spinner';
 import { Overlay, ModalEl, LargeImageStyled } from './Modal.styled';
 
-const modalRoot = document.querySelector('#modal-root');
+// const modalRoot = document.querySelector('#modal-root');
 
-class Modal extends Component {
-  componentDidMount() {
-    window.addEventListener('keydown', this.handleKeyDown);
-  }
+const Modal = ({ onClose, largeImage, isLargeImageLoaded, onImageLoad }) => {
+  useEffect(() => {
+    const handleKeyDown = event => {
+      if (event.code === 'Escape') {
+        onClose();
+      }
+    };
 
-  componentWillUnmount() {
-    window.removeEventListener('keydown', this.handleKeyDown);
-  }
+    window.addEventListener('keydown', handleKeyDown);
 
-  handleKeyDown = event => {
-    const { onClose } = this.props;
-    if (event.code === 'Escape') {
-      onClose();
-    }
-  };
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
 
-  handleBackdropClick = event => {
-    const { onClose } = this.props;
+  const handleBackdropClick = event => {
     if (event.currentTarget === event.target) {
       onClose();
     }
   };
 
-  render() {
-    const {
-      largeImage: { largeImageURL, tags },
-      isLargeImageLoaded,
-      onImageLoad,
-    } = this.props;
+  const { largeImageURL, tags } = largeImage;
 
-    return createPortal(
-      <Overlay onClick={this.handleBackdropClick}>
-        <ModalEl>
-          {!isLargeImageLoaded && <Spinner />}
-          <LargeImageStyled
-            src={largeImageURL}
-            alt={`Image of ${tags}`}
-            onLoad={onImageLoad}
-            isLargeImageLoaded={isLargeImageLoaded}
-          />
-        </ModalEl>
-      </Overlay>,
-      modalRoot
-    );
-  }
-}
+  return (
+    <Overlay onClick={handleBackdropClick}>
+      <ModalEl>
+        {!isLargeImageLoaded && <Spinner />}
+        <LargeImageStyled
+          src={largeImageURL}
+          alt={`Image of ${tags}`}
+          onLoad={onImageLoad}
+          isLargeImageLoaded={isLargeImageLoaded}
+        />
+      </ModalEl>
+    </Overlay>
+  );
+};
 
 Modal.propTypes = {
   onClose: PropTypes.func.isRequired,

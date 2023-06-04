@@ -1,7 +1,7 @@
 // App.jsx
-import React, { Component } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
-import fetchImages from 'utils/api';
+import fetchImagesAPI from 'utils/api';
 import showMessage from 'utils/swalConfig';
 
 import Layout from './layout';
@@ -12,8 +12,8 @@ import Modal from './Modal';
 import Spinner from './Spinner';
 import { SpinnerWrapper } from './App.styled';
 
-class App extends Component {
-  state = {
+const App = () => {
+  const [state, setState] = useState({
     images: [],
     loading: false,
     error: null,
@@ -24,23 +24,29 @@ class App extends Component {
     isLargeImageLoaded: false,
     hasMoreImages: true,
     total: 0,
-  };
+  });
 
-  componentDidUpdate(_, prevState) {
-    const { searchQuery, currentPage } = this.state;
-    const prevPage = prevState.currentPage;
-    const prevQuery = prevState.searchQuery;
+  const {
+    images,
+    loading,
+    error,
+    searchQuery,
+    currentPage,
+    largeImage,
+    showModal,
+    isLargeImageLoaded,
+    hasMoreImages,
+    total,
+  } = state;
 
-    if (prevQuery !== searchQuery || prevPage !== currentPage) {
-      this.fetchImages(searchQuery, currentPage);
-    }
-  }
-
-  fetchImages = async (searchQuery, currentPage) => {
-    this.setState({ loading: true });
+  const fetchImages = useCallback(async () => {
+    setState(prevState => ({ ...prevState, loading: true }));
 
     try {
-      const { hits, totalHits } = await fetchImages(searchQuery, currentPage);
+      const { hits, totalHits } = await fetchImagesAPI(
+        searchQuery,
+        currentPage
+      );
 
       if (hits.length === 0) {
         return showMessage(
@@ -48,100 +54,91 @@ class App extends Component {
         );
       }
 
-      this.setState(prevState => ({
+      setState(prevState => ({
+        ...prevState,
         images: [...prevState.images, ...hits],
         total: totalHits,
       }));
     } catch (error) {
-      this.setState({ error: error.message });
+      setState(prevState => ({ ...prevState, error: error.message }));
     } finally {
-      this.setState({ loading: false });
+      setState(prevState => ({ ...prevState, loading: false }));
     }
-  };
+  }, [searchQuery, currentPage]);
 
-  handleSearchSubmit = newQuery => {
-    if (newQuery === this.state.searchQuery) {
+  useEffect(() => {
+    if (searchQuery) {
+      fetchImages();
+    }
+  }, [searchQuery, currentPage, fetchImages]);
+
+  const handleSearchSubmit = newQuery => {
+    if (newQuery === searchQuery) {
       return showMessage(
         'You entered the same search query. Please enter a new one.'
       );
     }
 
-    this.setState({
+    setState({
+      ...state,
       searchQuery: newQuery,
       currentPage: 1,
       images: [],
     });
   };
 
-  loadMoreImages = () => {
-    this.setState(prevState => ({ currentPage: prevState.currentPage + 1 }));
+  const loadMoreImages = () => {
+    setState(prevState => ({
+      ...prevState,
+      currentPage: prevState.currentPage + 1,
+    }));
   };
 
-  openModal = image => {
-    this.setState({ largeImage: image, showModal: true });
+  const openModal = image => {
+    setState({ ...state, largeImage: image, showModal: true });
   };
 
-  closeModal = () => {
-    this.setState({
+  const closeModal = () => {
+    setState({
+      ...state,
       largeImage: null,
       showModal: false,
       isLargeImageLoaded: false,
     });
   };
 
-  handleImageLoad = () => {
-    this.setState({ isLargeImageLoaded: true });
+  const handleImageLoad = () => {
+    setState({ ...state, isLargeImageLoaded: true });
   };
 
-  render() {
-    const {
-      images,
-      loading,
-      error,
-      largeImage,
-      showModal,
-      isLargeImageLoaded,
-      hasMoreImages,
-      total,
-    } = this.state;
+  const totalPage = total / images.length;
 
-    const {
-      handleSearchSubmit,
-      openModal,
-      loadMoreImages,
-      closeModal,
-      handleImageLoad,
-    } = this;
+  return (
+    <Layout className="App">
+      <Searchbar onSubmit={handleSearchSubmit} isSubmitting={loading} />
+      {error && showMessage('Something went wrong...')}
 
-    const totalPage = total / images.length;
+      <ImageGallery images={images} onImageClick={openModal} />
 
-    return (
-      <Layout className="App">
-        <Searchbar onSubmit={handleSearchSubmit} isSubmitting={loading} />
-        {error && showMessage('Something went wrong...')}
+      {loading && (
+        <SpinnerWrapper>
+          <Spinner />
+        </SpinnerWrapper>
+      )}
+      {totalPage > 1 && !loading && images.length > 0 && hasMoreImages && (
+        <Button onClick={loadMoreImages} />
+      )}
 
-        <ImageGallery images={images} onImageClick={openModal} />
-
-        {loading && (
-          <SpinnerWrapper>
-            <Spinner />
-          </SpinnerWrapper>
-        )}
-        {totalPage > 1 && !loading && images.length > 0 && hasMoreImages && (
-          <Button onClick={loadMoreImages} />
-        )}
-
-        {showModal && (
-          <Modal
-            onClose={closeModal}
-            largeImage={largeImage}
-            isLargeImageLoaded={isLargeImageLoaded}
-            onImageLoad={handleImageLoad}
-          />
-        )}
-      </Layout>
-    );
-  }
-}
+      {showModal && (
+        <Modal
+          onClose={closeModal}
+          largeImage={largeImage}
+          isLargeImageLoaded={isLargeImageLoaded}
+          onImageLoad={handleImageLoad}
+        />
+      )}
+    </Layout>
+  );
+};
 
 export default App;

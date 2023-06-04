@@ -1,26 +1,22 @@
 // ImageGalleryItem.jsx
-import React, { Component } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 
 import { GalleryItem, GalleryImage } from './ImageGalleryItem.styled';
 
-class ImageGalleryItem extends Component {
-  handleClick = () => {
-    const { image, onImageClick } = this.props;
-
+const ImageGalleryItem = ({ image, onImageClick }) => {
+  const handleClick = () => {
     onImageClick(image);
   };
 
-  render() {
-    const { webformatURL, tags } = this.props.image;
+  const { webformatURL, tags } = image;
 
-    return (
-      <GalleryItem onClick={this.handleClick}>
-        <GalleryImage src={webformatURL} alt={`Image of ${tags}`} />
-      </GalleryItem>
-    );
-  }
-}
+  return (
+    <GalleryItem onClick={handleClick}>
+      <GalleryImage src={webformatURL} alt={`Image of ${tags}`} />
+    </GalleryItem>
+  );
+};
 
 ImageGalleryItem.propTypes = {
   image: PropTypes.shape({
